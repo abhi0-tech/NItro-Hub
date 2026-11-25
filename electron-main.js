@@ -300,15 +300,20 @@ function writePrefs(next) {
   } catch {}
 }
 
-function ensureDefaultAutoStart() {
+async function ensureDefaultAutoStart() {
   const prefs = readPrefs();
   if (!prefs.autoStartInitialized) {
     if (app.isPackaged) {
-      app.setLoginItemSettings({
-        openAtLogin: true,
-        path: app.getPath('exe'),
-        args: ['--startup'],
-      });
+      let hasTask = false;
+      try {
+        const { stdout } = await execFileAsync('schtasks.exe', ['/Query', '/TN', 'NitroHubAutoStart', '/FO', 'LIST'], { windowsHide: true });
+        hasTask = /Status:\s*(Ready|Running)/i.test(stdout);
+      } catch {}
+      if (hasTask) {
+        app.setLoginItemSettings({ openAtLogin: false, path: app.getPath('exe'), args: ['--startup'] });
+      } else {
+        app.setLoginItemSettings({ openAtLogin: true, path: app.getPath('exe'), args: ['--startup'] });
+      }
     }
     writePrefs({ ...prefs, autoStartInitialized: true });
   }
@@ -568,11 +573,7 @@ ipcMain.handle('get-auto-start', async () => {
 
 ipcMain.handle('set-auto-start', async (_event, enabled) => {
   const openAtLogin = Boolean(enabled);
-  app.setLoginItemSettings({
-    openAtLogin,
-    path: app.getPath('exe'),
-    args: ['--startup'],
-  });
+  let taskConfigured = false;
   try {
     if (openAtLogin) {
       await execFileAsync('schtasks.exe', [
@@ -580,10 +581,16 @@ ipcMain.handle('set-auto-start', async (_event, enabled) => {
         '/TR', `"${app.getPath('exe')}" --startup`,
         '/SC', 'ONLOGON', '/F',
       ], { windowsHide: true });
+      taskConfigured = true;
     } else {
       await execFileAsync('schtasks.exe', ['/Delete', '/TN', 'NitroHubAutoStart', '/F'], { windowsHide: true }).catch(() => {});
     }
   } catch {}
+  app.setLoginItemSettings({
+    openAtLogin: openAtLogin && !taskConfigured,
+    path: app.getPath('exe'),
+    args: ['--startup'],
+  });
   const prefs = readPrefs();
   writePrefs({ ...prefs, autoStartInitialized: true });
   return { ok: true, openAtLogin };
@@ -821,7 +828,10 @@ ipcMain.handle('hackbgrt-apply', async (_event, payload) => {
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
-  app.on('second-instance', () => showMainWindow());
+  app.on('second-instance', (_event, commandLine) => {
+    if (Array.isArray(commandLine) && commandLine.includes('--startup')) return;
+    showMainWindow();
+  });
   app.whenReady().then(createWindow);
 }
 

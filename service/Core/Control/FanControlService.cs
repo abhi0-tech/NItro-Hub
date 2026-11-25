@@ -532,7 +532,12 @@ public sealed class FanControlService : IDeviceDispatcher, IDisposable
         if (OperatingModePolicy.Target(profile, Capabilities.OperatingModes, _limit, Capabilities.ModeRules) is not { } target)
             return;
         if (target == _appliedMode && !reapply)
-            return;
+        {
+            if (_modes.Read() is { } actual && actual != target)
+                reapply = true;
+            else
+                return;
+        }
 
         var before = _appliedMode;
         _modeRejected = false;
