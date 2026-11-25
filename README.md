@@ -34,6 +34,13 @@ Get the latest Windows x64 installer directly from the [**Latest Release**](http
 
 ---
 
+## Screenshots
+- Homepage
+
+<img width="1919" height="1009" alt="image" src="https://github.com/user-attachments/assets/f049acc2-f011-428f-ae75-761d7d940550" />
+
+---
+
 ## Features
 
 - **Home Dashboard**:
@@ -87,6 +94,8 @@ The installer will be generated in `dist_electron/`.
 
 ---
 
+AI was used as coding assist for the app, testing and security is done to ensure security and functionality are in place.
+
 ## Credits
 
-- **Acer Crate** ([`vergulesmatvey-oss/Acer-Crate`](https://github.com/vergulesmatvey-oss/Acer-Crate)) — For Acer hardware config reference.
+- **Acer Crate** ([`vergulesmatvey-oss/Acer-Crate`](https://github.com/vergulesmatvey-oss/Acer-Crate)) — For Acer hardware config files.
