@@ -37,6 +37,11 @@ A lightweight, customizable hardware control center for **Acer Nitro** laptops o
 
 ---
 
+## Screenshots
+- Homepage
+
+<img width="1919" height="1009" alt="image" src="https://github.com/user-attachments/assets/f049acc2-f011-428f-ae75-761d7d940550" />
+
 ## Building from Source
 
 ### Prerequisites
