@@ -1077,7 +1077,18 @@ const App = () => {
     setBootMsg('');
     setHackbgrtMissing(false);
     try {
-      const buf = await bootFile.arrayBuffer();
+      // Decode any image format (PNG, JPG, BMP) via browser bitmap + canvas -> PNG for Electron nativeImage
+      const bitmap = await createImageBitmap(bootFile);
+      const canvas = document.createElement('canvas');
+      canvas.width = bitmap.width;
+      canvas.height = bitmap.height;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#000000';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bitmap, 0, 0);
+      bitmap.close();
+      const pngBlob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+      const buf = await pngBlob.arrayBuffer();
       const bytes = new Uint8Array(buf);
       let binary = '';
       const chunk = 0x8000;

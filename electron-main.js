@@ -797,6 +797,11 @@ ipcMain.handle('hackbgrt-apply', async (_event, payload) => {
       if (rawBuf.length === 0 || rawBuf.length > 25 * 1024 * 1024) {
         return { ok: false, msg: 'Invalid image file size.' };
       }
+      // If already an uncompressed 24-bit BMP, send directly to service
+      if (rawBuf.length >= 54 && rawBuf[0] === 0x42 && rawBuf[1] === 0x4d && rawBuf.readUInt16LE(28) === 24 && rawBuf.readUInt32LE(30) === 0) {
+        const svcRes = await service.applyHackbgrtSplash(rawBuf.toString('base64'));
+        return svcRes || { ok: false, msg: 'Hardware service did not respond.' };
+      }
       img = nativeImage.createFromBuffer(rawBuf);
     } else if (typeof payload === 'string' && payload) {
       const resolved = path.resolve(payload);
