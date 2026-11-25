@@ -1,6 +1,36 @@
-# Nitro Hub
+<p align="center">
+  <img src="applogo.png" alt="Nitro Hub Logo" width="120" />
+</p>
 
-A lightweight, customizable hardware control center for **Acer Nitro** laptops on Windows, built with **Electron**, **React**, and a background **Windows Service** (`NitroHubService`).
+<h1 align="center">Nitro Hub</h1>
+
+<p align="center">
+  A lightweight, customizable hardware control center for <strong>Acer Nitro</strong> laptops on Windows, built with <strong>Electron</strong>, <strong>React</strong>, and a background <strong>Windows Service</strong> (<code>NitroHubService</code>).
+</p>
+
+<p align="center">
+  <a href="https://github.com/abhi0-tech/NItro-Hub/stargazers">
+    <img src="https://img.shields.io/github/stars/abhi0-tech/NItro-Hub?style=for-the-badge&color=00e5ff&labelColor=070b12" alt="GitHub Stars" />
+  </a>
+  <a href="https://github.com/abhi0-tech/NItro-Hub/releases">
+    <img src="https://img.shields.io/github/downloads/abhi0-tech/NItro-Hub/total?style=for-the-badge&color=00e5ff&labelColor=070b12" alt="Total Downloads" />
+  </a>
+  <a href="https://github.com/abhi0-tech/NItro-Hub/releases/latest">
+    <img src="https://img.shields.io/github/v/release/abhi0-tech/NItro-Hub?style=for-the-badge&color=00e5ff&labelColor=070b12" alt="Latest Release" />
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/abhi0-tech/NItro-Hub/releases/latest">
+    <img src="https://img.shields.io/badge/Download_Latest_Release-Windows_x64-00e5ff?style=for-the-badge&logo=windows&logoColor=000000" alt="Download Latest Release" />
+  </a>
+</p>
+
+---
+
+## Download
+
+Get the latest Windows x64 installer directly from the [**Latest Release**](https://github.com/abhi0-tech/NItro-Hub/releases/latest) page.
 
 ---
 
@@ -36,11 +66,6 @@ A lightweight, customizable hardware control center for **Acer Nitro** laptops o
   - Configurable **Debug Window** shortcut (`Shift+F12` by default) and optional toolbar toggle.
 
 ---
-
-## Screenshots
-- Homepage
-
-<img width="1919" height="1009" alt="image" src="https://github.com/user-attachments/assets/f049acc2-f011-428f-ae75-761d7d940550" />
 
 ## Building from Source
 
