@@ -1,0 +1,91 @@
+using NitroHub.Core.Hardware;
+using NitroHub.Core.Control;
+using NitroHub.Core.Hardware.Boot;
+using NitroHub.Core.Hardware.Hid;
+using NitroHub.Core.Monitoring;
+
+namespace NitroHub.Core.Engine;
+
+/// <summary>Everything the engine reads the laptop through, so tests can put a simulated laptop behind it.</summary>
+public interface IMachine
+{
+    IModePowerSchemes? ModePowerSchemes => null;
+    IProcessorPowerPlans? ProcessorPowerPlans => null;
+    /// <summary>E.g. "Nitro AN515-57"; null when Windows does not say.</summary>
+    string? Model { get; }
+
+    string? BiosVersion { get; }
+
+    /// <summary>The serial number on the laptop's label; null when Windows does not say.</summary>
+    string? SerialNumber { get; }
+
+    /// <summary>Acer's gaming WMI interface.</summary>
+    IWmiTransport OpenFirmware();
+
+    /// <summary>The firmware's events (Mode key, adapter, battery).</summary>
+    IFirmwareEvents OpenFirmwareEvents();
+
+    /// <summary>AC adapter and battery, as Windows reports them.</summary>
+    IPowerSource OpenPowerSource();
+
+    /// <summary>Windows' power management (keeping it awake, power plan settings).</summary>
+    ISystemPower OpenSystemPower();
+
+    /// <summary>The battery's wear, as it reports it to Windows; null without a battery.</summary>
+    BatteryHealth? ReadBatteryHealth();
+
+    /// <summary>HID devices: Acer's embedded-controller interface on newer models, USB lighting devices.</summary>
+    IHidBus OpenHid();
+
+    AcerSmbios ReadSmbios();
+
+    /// <summary>The firmware's ACPI tables; empty where Windows doesn't give them.</summary>
+    IReadOnlyList<AcpiTable> ReadAcpiTables();
+
+    ILoadMonitor OpenLoadMonitor();
+
+    /// <summary>The CPU's and GPU's own temperature sensors, where available.</summary>
+    DirectSensors OpenSensors();
+
+    /// <summary>Where the firmware finds a custom boot logo; null without an EFI system partition.</summary>
+    IBootLogoStore? OpenBootLogo(Action<string> log);
+
+    /// <summary>The built-in screen's native resolution, when Windows lists it.</summary>
+    PixelSize? ReadInternalScreen();
+}
+
+/// <summary>This PC.</summary>
+public sealed class WindowsMachine : IMachine
+{
+    public IModePowerSchemes ModePowerSchemes { get; } = new WindowsModePowerSchemes();
+    public IProcessorPowerPlans ProcessorPowerPlans { get; } = new WindowsProcessorPowerPlans();
+    public string? Model => SystemInfo.ReadModel();
+
+    public string? BiosVersion => SystemInfo.ReadBiosVersion();
+
+    public string? SerialNumber => SystemInfo.ReadSerialNumber();
+
+    public IWmiTransport OpenFirmware() => new WmiTransport();
+
+    public IFirmwareEvents OpenFirmwareEvents() => new WmiFirmwareEvents();
+
+    public IPowerSource OpenPowerSource() => new SystemPowerSource();
+
+    public ISystemPower OpenSystemPower() => new WindowsSystemPower();
+
+    public BatteryHealth? ReadBatteryHealth() => WindowsBattery.Read();
+
+    public IHidBus OpenHid() => new WindowsHidBus();
+
+    public AcerSmbios ReadSmbios() => AcerSmbios.Read();
+
+    public IReadOnlyList<AcpiTable> ReadAcpiTables() => AcpiTable.ReadAll();
+
+    public ILoadMonitor OpenLoadMonitor() => new LoadMonitor();
+
+    public DirectSensors OpenSensors() => DirectSensors.Open();
+
+    public IBootLogoStore? OpenBootLogo(Action<string> log) => BootLogoFolder.OpenSystemPartition(log);
+
+    public PixelSize? ReadInternalScreen() => InternalScreen.ReadNativeResolution();
+}

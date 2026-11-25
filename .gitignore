@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Frontend & Electron build outputs
+dist/
+dist_electron/
+
+# .NET service build & publish outputs
+service-publish/
+service/bin/
+service/obj/
+
+# Logs & OS files
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# Environment & IDE
+.env
+.env.local
+.vscode/
