@@ -1,0 +1,101 @@
+{
+  "name": "nitro-hub",
+  "version": "1.0.0",
+  "description": "Hardware control center for Acer Nitro laptops",
+  "author": "abhi0-tech",
+  "main": "electron-main.js",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build-service": "node -e \"try{require('fs').rmSync('service-publish',{recursive:true,force:true})}catch{}\" && dotnet publish service/NitroHubService.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o service-publish",
+    "preview": "vite preview",
+    "electron": "electron .",
+    "clean": "node -e \"const fs=require('fs');['dist','dist_electron','service-publish','service/bin','service/obj'].forEach(d=>{try{fs.rmSync(d,{recursive:true,force:true})}catch{}});console.log('Cleaned.')\"",
+    "dist": "npm run build-service && npm run build && electron-builder"
+  },
+  "dependencies": {
+    "lucide-react": "^1.80.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.5",
+    "@vitejs/plugin-react": "^6.3.0",
+    "autoprefixer": "^10.7.0",
+    "electron": "^45.5.0",
+    "electron-builder": "^26.18.0",
+    "postcss": "^8.5.33",
+    "tailwindcss": "^4.3.5",
+    "vite": "^8.3.8"
+  },
+  "overrides": {
+    "minimatch": "^11.0.9"
+  },
+  "build": {
+    "appId": "com.nitro.nitrohub",
+    "productName": "Nitro Hub",
+    "icon": "applogo.ico",
+    "directories": {
+      "output": "dist_electron"
+    },
+    "files": [
+      "dist/**/*",
+      "electron-main.js",
+      "preload.js",
+      "applogo.png",
+      "applogo.ico",
+      "main/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "hackbgrt",
+        "to": "hackbgrt"
+      },
+      {
+        "from": "applogo.ico",
+        "to": "applogo.ico"
+      },
+      {
+        "from": "applogo.png",
+        "to": "applogo.png"
+      }
+    ],
+    "extraFiles": [
+      {
+        "from": "service-publish",
+        "to": "nitro-service",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "applogo.ico",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "artifactName": "${productName} ${version} ${arch}.${ext}",
+      "installerIcon": "applogo.ico",
+      "uninstallerIcon": "applogo.ico",
+      "installerHeader": "installer/header.bmp",
+      "installerSidebar": "installer/sidebar.bmp",
+      "uninstallerSidebar": "installer/sidebar.bmp",
+      "oneClick": false,
+      "perMachine": true,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "include": "installer/service.nsh",
+      "runAfterFinish": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "menuCategory": "Nitro Hub",
+      "uninstallDisplayName": "Nitro Hub",
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}
