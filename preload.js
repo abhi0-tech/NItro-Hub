@@ -43,9 +43,10 @@ contextBridge.exposeInMainWorld('electron', {
     ipcRenderer.send(channel, data);
   },
   onRequestClose: (cb) => subscribe('nitro:request-close', cb),
+  onAppUpdate: (cb) => subscribe('nitro:app-update', cb),
   invoke: (channel, data) => {
     const validChannels = new Set([
-      'check-windows-updates', 'hackbgrt-status', 'hackbgrt-apply',
+      'check-windows-updates', 'check-app-update', 'hackbgrt-status', 'hackbgrt-apply',
       'install-hackbgrt', 'hackbgrt-check-update', 'get-system-specs',
       'get-auto-start', 'set-auto-start',
       'get-sense-key-override', 'set-sense-key-override',

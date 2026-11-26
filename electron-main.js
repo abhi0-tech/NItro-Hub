@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell, Tray, Menu, nativeImage } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, Tray, Menu, nativeImage, Notification } from 'electron';
 import path from 'path';
 import os from 'os';
 import { fileURLToPath } from 'url';
@@ -649,6 +649,57 @@ ipcMain.handle('get-system-specs', async () => {
   return { totalRamGb, totalStorageGb, windowsName };
 });
 
+function compareSemver(a, b) {
+  const pa = String(a || '').replace(/^v/i, '').split('.').map(n => parseInt(n, 10) || 0);
+  const pb = String(b || '').replace(/^v/i, '').split('.').map(n => parseInt(n, 10) || 0);
+  for (let i = 0; i < 3; i++) {
+    if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) - (pb[i] || 0);
+  }
+  return 0;
+}
+
+async function checkAppUpdate({ notify = false } = {}) {
+  const currentVersion = app.getVersion();
+  try {
+    const res = await fetch('https://api.github.com/repos/abhi0-tech/NItro-Hub/releases/latest', {
+      headers: { 'User-Agent': 'Nitro-Hub', Accept: 'application/vnd.github+json' },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const latestVersion = String(data.tag_name || '').replace(/^v/i, '').trim();
+    const updateAvailable = Boolean(latestVersion && compareSemver(latestVersion, currentVersion) > 0);
+    const exeAsset = Array.isArray(data.assets)
+      ? data.assets.find(a => /\.exe$/i.test(a.name || '') && !/__uninstaller/i.test(a.name || ''))
+      : null;
+    const downloadUrl = exeAsset?.browser_download_url || data.html_url || 'https://github.com/abhi0-tech/NItro-Hub/releases/latest';
+    const result = {
+      ok: true,
+      currentVersion,
+      latestVersion: latestVersion || currentVersion,
+      updateAvailable,
+      downloadUrl,
+      releaseUrl: data.html_url || 'https://github.com/abhi0-tech/NItro-Hub/releases/latest',
+    };
+    sendToRenderer('nitro:app-update', result);
+    if (notify && updateAvailable && Notification.isSupported()) {
+      const notif = new Notification({
+        title: `Nitro Hub v${result.latestVersion} Available`,
+        body: `A new update is ready (installed: v${currentVersion}). Click to download.`,
+        icon: getAssetOnDisk('applogo.png'),
+      });
+      notif.on('click', () => {
+        shell.openExternal(downloadUrl);
+      });
+      notif.show();
+    }
+    return result;
+  } catch (err) {
+    return { ok: false, currentVersion, error: err.message };
+  }
+}
+
+ipcMain.handle('check-app-update', () => checkAppUpdate({ notify: false }));
+
 ipcMain.handle('hackbgrt-check-update', async () => {
   let currentVersion = '2.6.0';
   try {
@@ -859,11 +910,15 @@ ipcMain.handle('hackbgrt-apply', async (_event, payload) => {
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
+  app.setAppUserModelId('com.nitrohub.app');
   app.on('second-instance', (_event, commandLine) => {
     if (Array.isArray(commandLine) && commandLine.includes('--startup')) return;
     showMainWindow();
   });
-  app.whenReady().then(createWindow);
+  app.whenReady().then(() => {
+    createWindow();
+    setTimeout(() => { checkAppUpdate({ notify: true }).catch(() => {}); }, 4000);
+  });
 }
 
 app.on('window-all-closed', () => {

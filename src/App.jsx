@@ -748,9 +748,10 @@ const App = () => {
   });
   const [systemSpecs, setSystemSpecs] = useState(null);
 
-  // Windows Update & HackBGRT state
+  // Windows Update & Nitro Hub Update & HackBGRT state
   const [wuStatus, setWuStatus] = useState('idle');
   const [wuResult, setWuResult] = useState(null);
+  const [appUpdate, setAppUpdate] = useState({ checking: false, result: null });
   const [hackbgrtInfo, setHackbgrtInfo] = useState(null);
   const [hackbgrtUpdate, setHackbgrtUpdate] = useState({ checking: false, currentVersion: '2.6.0' });
   const [bootFile, setBootFile] = useState(null);
@@ -800,6 +801,12 @@ const App = () => {
     window.electron?.invoke('get-sense-key-override')
       .then(res => { if (res && typeof res.enabled === 'boolean') setSenseKeyOverride(res.enabled); })
       .catch(() => {});
+    const unsubAppUpdate = window.electron?.onAppUpdate?.((res) => {
+      if (res) setAppUpdate({ checking: false, result: res });
+    });
+    return () => {
+      if (typeof unsubAppUpdate === 'function') unsubAppUpdate();
+    };
   }, []);
 
   useEffect(() => {
@@ -1927,26 +1934,15 @@ const App = () => {
           </>
           )}
 
-          {(caps?.keyboard?.backlightAutoOff || caps?.keyboard?.fnLock) && (
-            <div className="pt-3 border-t border-white/10 grid grid-cols-2 gap-3">
-              {caps?.keyboard?.backlightAutoOff && (
-                <div className="flex items-center justify-between bg-black/40 rounded-xl px-4 py-2.5 border border-white/10">
-                  <span className="text-[10px] font-bold text-slate-300 tracking-wider">Backlight Auto-Off</span>
-                  <ToggleSwitch
-                    checked={Boolean(keyboardSettings.backlightAutoOff ?? snapshot?.keyboard?.backlightAutoOff)}
-                    onChange={(val) => updateKeyboardSetting('backlightAutoOff', val)}
-                  />
-                </div>
-              )}
-              {caps?.keyboard?.fnLock && (
-                <div className="flex items-center justify-between bg-black/40 rounded-xl px-4 py-2.5 border border-white/10">
-                  <span className="text-[10px] font-bold text-slate-300 tracking-wider">Fn Lock</span>
-                  <ToggleSwitch
-                    checked={Boolean(keyboardSettings.fnLock ?? snapshot?.keyboard?.fnLock)}
-                    onChange={(val) => updateKeyboardSetting('fnLock', val)}
-                  />
-                </div>
-              )}
+          {caps?.keyboard?.backlightAutoOff && (
+            <div className="pt-3 border-t border-white/10">
+              <div className="flex items-center justify-between bg-black/40 rounded-xl px-4 py-2.5 border border-white/10">
+                <span className="text-[10px] font-bold text-slate-300 tracking-wider">Backlight Auto-Off</span>
+                <ToggleSwitch
+                  checked={Boolean(keyboardSettings.backlightAutoOff ?? snapshot?.keyboard?.backlightAutoOff)}
+                  onChange={(val) => updateKeyboardSetting('backlightAutoOff', val)}
+                />
+              </div>
             </div>
           )}
         </div>
@@ -2723,13 +2719,13 @@ const App = () => {
           {/* Mode dropdown */}
           <div className="border-b border-white/10">
             <button onClick={() => setSidebarDrop(v => v === 'mode' ? null : 'mode')}
-              className="px-4 py-3 flex items-center justify-between w-full hover:bg-white/5 transition-all">
-              <div className="flex items-center gap-2 text-[10px] font-bold text-white tracking-widest">
-                <LayoutDashboard size={11} style={{ color: 'var(--accent)' }} /> Mode
+              className="px-4 py-3.5 flex items-center justify-between w-full hover:bg-white/5 transition-all">
+              <div className="flex items-center gap-2 text-xs font-black text-white tracking-wider">
+                <LayoutDashboard size={14} style={{ color: 'var(--accent)' }} /> Mode
               </div>
-              <div className="flex items-center gap-1 text-[11px] font-bold" style={{ color: 'var(--accent)' }}>
+              <div className="flex items-center gap-1.5 text-xs font-black" style={{ color: 'var(--accent)' }}>
                 {activeModeMeta.label}
-                <ChevronRight size={11} className={`transition-transform ${sidebarDrop === 'mode' ? 'rotate-90' : ''}`} />
+                <ChevronRight size={13} className={`transition-transform ${sidebarDrop === 'mode' ? 'rotate-90' : ''}`} />
               </div>
             </button>
             {sidebarDrop === 'mode' && (
@@ -2738,7 +2734,7 @@ const App = () => {
                   const allowed = allowedModes.includes(m);
                   return (
                     <button key={m} disabled={!allowed} onClick={() => { handleOperatingModeChange(m); setSidebarDrop(null); }}
-                      className={`w-full px-5 py-2 text-left text-[11px] font-bold tracking-widest transition-all flex items-center justify-between ${
+                      className={`w-full px-5 py-2.5 text-left text-xs font-bold tracking-wider transition-all flex items-center justify-between ${
                         activeOperatingMode === m ? 'text-white bg-[rgba(var(--accent-rgb),0.1)]'
                           : allowed ? 'text-slate-400 hover:text-white hover:bg-white/5'
                             : 'text-slate-700 cursor-not-allowed'
@@ -2751,7 +2747,7 @@ const App = () => {
                 <div className="border-t border-white/10 mt-1" />
                 <button onClick={() => { setSidebarDrop(null); setActiveTab('scenario'); }}
                   className="w-full px-5 py-2 text-left text-[10px] font-bold text-slate-500 hover:text-white tracking-widest transition-all flex items-center gap-1.5">
-                  <ChevronRight size={9} /> Full Settings
+                  <ChevronRight size={10} /> Full Settings
                 </button>
               </div>
             )}
@@ -2760,13 +2756,13 @@ const App = () => {
           {/* Fan dropdown */}
           <div className="border-b border-white/10">
             <button onClick={() => setSidebarDrop(v => v === 'fan' ? null : 'fan')}
-              className="px-4 py-3 flex items-center justify-between w-full hover:bg-white/5 transition-all">
-              <div className="flex items-center gap-2 text-[10px] font-bold text-white tracking-widest">
-                <Fan size={11} style={{ color: 'var(--accent)' }} /> Fan
+              className="px-4 py-3.5 flex items-center justify-between w-full hover:bg-white/5 transition-all">
+              <div className="flex items-center gap-2 text-xs font-black text-white tracking-wider">
+                <Fan size={14} style={{ color: 'var(--accent)' }} /> Fan
               </div>
-              <div className="flex items-center gap-1 text-[11px] font-bold capitalize" style={{ color: 'var(--accent)' }}>
+              <div className="flex items-center gap-1.5 text-xs font-black capitalize" style={{ color: 'var(--accent)' }}>
                 {fanMode}
-                <ChevronRight size={11} className={`transition-transform ${sidebarDrop === 'fan' ? 'rotate-90' : ''}`} />
+                <ChevronRight size={13} className={`transition-transform ${sidebarDrop === 'fan' ? 'rotate-90' : ''}`} />
               </div>
             </button>
             {sidebarDrop === 'fan' && (
@@ -2867,6 +2863,67 @@ const App = () => {
               className="w-full mt-1 py-2 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black text-white tracking-widest hover:border-[var(--accent)] transition-all disabled:opacity-50"
             >
               {wuStatus === 'checking' ? 'Checking…' : 'Check Now'}
+            </button>
+          </div>
+
+          {/* Nitro Hub Update */}
+          <div className="border-b border-white/10 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-[11px] font-black text-white tracking-widest">Nitro Hub Update</div>
+              {appUpdate.result?.currentVersion && (
+                <span className="text-[9px] font-bold text-slate-400">v{appUpdate.result.currentVersion}</span>
+              )}
+            </div>
+            {appUpdate.checking && (
+              <div className="text-[10px] font-bold text-center py-1 animate-pulse" style={{ color: 'var(--accent)' }}>
+                Checking GitHub…
+              </div>
+            )}
+            {!appUpdate.checking && !appUpdate.result && (
+              <div className="text-[10px] text-slate-400 font-bold text-center py-1">Check for new release</div>
+            )}
+            {!appUpdate.checking && appUpdate.result && (
+              <div className="space-y-1.5 mb-2">
+                {!appUpdate.result.ok ? (
+                  <div className="text-[9px] text-red-400 font-bold text-center py-1">{appUpdate.result.error || 'Update check failed'}</div>
+                ) : appUpdate.result.updateAvailable ? (
+                  <>
+                    <div className="flex items-center gap-1.5 justify-center py-1">
+                      <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--accent)' }} />
+                      <span className="text-[10px] font-bold" style={{ color: 'var(--accent)' }}>
+                        v{appUpdate.result.latestVersion} available
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => window.electron?.send('open-external', appUpdate.result.downloadUrl)}
+                      className="w-full py-1.5 rounded-lg bg-[rgba(var(--accent-rgb),0.15)] border border-[rgba(var(--accent-rgb),0.4)] text-[9px] font-black tracking-widest hover:brightness-110 transition-all"
+                      style={{ color: 'var(--accent)' }}
+                    >
+                      Download v{appUpdate.result.latestVersion}
+                    </button>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-1.5 justify-center py-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_#10b981]" />
+                    <span className="text-[10px] text-emerald-400 font-bold">Up to date</span>
+                  </div>
+                )}
+              </div>
+            )}
+            <button
+              onClick={async () => {
+                setAppUpdate(prev => ({ ...prev, checking: true }));
+                try {
+                  const res = await window.electron?.invoke('check-app-update');
+                  setAppUpdate({ checking: false, result: res });
+                } catch (e) {
+                  setAppUpdate({ checking: false, result: { ok: false, error: String(e) } });
+                }
+              }}
+              disabled={appUpdate.checking}
+              className="w-full mt-1 py-2 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black text-white tracking-widest hover:border-[var(--accent)] transition-all disabled:opacity-50"
+            >
+              {appUpdate.checking ? 'Checking…' : 'Check for Updates'}
             </button>
           </div>
 
