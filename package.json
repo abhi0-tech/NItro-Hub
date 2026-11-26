@@ -1,6 +1,6 @@
 {
   "name": "nitro-hub",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Hardware control center for Acer Nitro laptops",
   "author": "abhi0-tech",
   "main": "electron-main.js",
