@@ -21,7 +21,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/abhi0-tech/NItro-Hub/releases/latest/download/Nitro.Hub.1.1.0.x64.exe">
+  <a href="https://github.com/abhi0-tech/NItro-Hub/releases/latest/download/Nitro.Hub.1.1.1.x64.exe">
     <img src="https://img.shields.io/badge/Download_Latest_Release-Windows_x64-52525b?style=flat&logo=windows&logoColor=ffffff&labelColor=18181b" alt="Download Latest Release" />
   </a>
 </p>
