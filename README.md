@@ -33,9 +33,12 @@
 Get the latest Windows x64 installer directly from the [**Latest Release**](https://github.com/abhi0-tech/NItro-Hub/releases/latest) page.
 
 ---
+---
 
 Join the discord server for updates:
 https://discord.gg/HjNtGhg5DA
+
+---
 
 ---
 
@@ -43,6 +46,8 @@ https://discord.gg/HjNtGhg5DA
 - Homepage
 
 <img width="1919" height="1009" alt="image" src="https://github.com/user-attachments/assets/f049acc2-f011-428f-ae75-761d7d940550" />
+
+---
 
 ---
 
@@ -79,6 +84,8 @@ https://discord.gg/HjNtGhg5DA
 
 ---
 
+---
+
 ## Supported Models
 
 Nitro Hub probes your laptop's firmware capabilities automatically and supports **Acer Nitro** and **Predator** series laptops on Windows 10 / 11, including:
@@ -95,6 +102,8 @@ Nitro Hub probes your laptop's firmware capabilities automatically and supports 
 - **Triton**: `PT14` (`PT14-51`, `PT14-52T`), `PT16` (`PT16-51`), `PTX17` (`PTX17-71`), `PT314` (`PT314-52S`), `PT516` (`PT516-52S`), `PTN16` (`PTN16-51`)
 
 *Other Acer gaming laptops with Acer WMI (`AcerGamingFunction`) firmware support also work automatically.*
+
+---
 
 ---
 
@@ -118,6 +127,10 @@ The installer will be generated in `dist_electron/`.
 
 ---
 
+---
+
 ## Credits
 
 - **Acer Crate** ([`vergulesmatvey-oss/Acer-Crate`](https://github.com/vergulesmatvey-oss/Acer-Crate)) — For Acer hardware config reference.
+
+---
