@@ -34,6 +34,11 @@ Get the latest Windows x64 installer directly from the [**Latest Release**](http
 
 ---
 
+Join the discord server for updates:
+https://discord.gg/HjNtGhg5DA
+
+---
+
 ## Screenshots
 - Homepage
 
