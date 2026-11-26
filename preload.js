@@ -48,6 +48,7 @@ contextBridge.exposeInMainWorld('electron', {
       'check-windows-updates', 'hackbgrt-status', 'hackbgrt-apply',
       'install-hackbgrt', 'hackbgrt-check-update', 'get-system-specs',
       'get-auto-start', 'set-auto-start',
+      'get-sense-key-override', 'set-sense-key-override',
     ]);
     if (!validChannels.has(channel)) return Promise.reject(new Error('Unsupported IPC request'));
     return ipcRenderer.invoke(channel, data);

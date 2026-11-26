@@ -194,7 +194,12 @@ function startServiceSubscription() {
         latestOperatingMode = telemetry.operatingMode;
         updateTrayMenu();
       }
-      sendToRenderer('nitro:telemetry', { ...telemetry, ...getHostMetrics() });
+      const host = getHostMetrics();
+      sendToRenderer('nitro:telemetry', {
+        ...telemetry,
+        ...host,
+        cpuMhz: telemetry?.cpuMhz > 0 ? telemetry.cpuMhz : host.cpuMhz,
+      });
     },
     onNotice: (notice) => sendToRenderer('nitro:notice', notice),
     onRebuilt: (snapshot) => {
@@ -300,7 +305,15 @@ function writePrefs(next) {
   } catch {}
 }
 
+async function clearRegistryAutoStart() {
+  try {
+    app.setLoginItemSettings({ openAtLogin: false });
+    app.setLoginItemSettings({ openAtLogin: false, path: app.getPath('exe'), args: ['--startup'] });
+  } catch {}
+}
+
 async function ensureDefaultAutoStart() {
+  await clearRegistryAutoStart();
   const prefs = readPrefs();
   if (!prefs.autoStartInitialized) {
     if (app.isPackaged) {
@@ -309,10 +322,14 @@ async function ensureDefaultAutoStart() {
         const { stdout } = await execFileAsync('schtasks.exe', ['/Query', '/TN', 'NitroHubAutoStart', '/FO', 'LIST'], { windowsHide: true });
         hasTask = /Status:\s*(Ready|Running)/i.test(stdout);
       } catch {}
-      if (hasTask) {
-        app.setLoginItemSettings({ openAtLogin: false, path: app.getPath('exe'), args: ['--startup'] });
-      } else {
-        app.setLoginItemSettings({ openAtLogin: true, path: app.getPath('exe'), args: ['--startup'] });
+      if (!hasTask) {
+        try {
+          await execFileAsync('schtasks.exe', [
+            '/Create', '/TN', 'NitroHubAutoStart',
+            '/TR', `"${app.getPath('exe')}" --startup`,
+            '/SC', 'ONLOGON', '/F',
+          ], { windowsHide: true });
+        } catch {}
       }
     }
     writePrefs({ ...prefs, autoStartInitialized: true });
@@ -562,18 +579,17 @@ ipcMain.handle('check-windows-updates', async () => {
 });
 
 ipcMain.handle('get-auto-start', async () => {
-  const settings = app.getLoginItemSettings({ path: app.getPath('exe'), args: ['--startup'] });
   let taskEnabled = false;
   try {
     const { stdout } = await execFileAsync('schtasks.exe', ['/Query', '/TN', 'NitroHubAutoStart', '/FO', 'LIST'], { windowsHide: true });
     taskEnabled = /Status:\s*(Ready|Running)/i.test(stdout);
   } catch {}
-  return { openAtLogin: Boolean(settings.openAtLogin || taskEnabled) };
+  return { openAtLogin: taskEnabled };
 });
 
 ipcMain.handle('set-auto-start', async (_event, enabled) => {
   const openAtLogin = Boolean(enabled);
-  let taskConfigured = false;
+  await clearRegistryAutoStart();
   try {
     if (openAtLogin) {
       await execFileAsync('schtasks.exe', [
@@ -581,19 +597,29 @@ ipcMain.handle('set-auto-start', async (_event, enabled) => {
         '/TR', `"${app.getPath('exe')}" --startup`,
         '/SC', 'ONLOGON', '/F',
       ], { windowsHide: true });
-      taskConfigured = true;
     } else {
       await execFileAsync('schtasks.exe', ['/Delete', '/TN', 'NitroHubAutoStart', '/F'], { windowsHide: true }).catch(() => {});
     }
   } catch {}
-  app.setLoginItemSettings({
-    openAtLogin: openAtLogin && !taskConfigured,
-    path: app.getPath('exe'),
-    args: ['--startup'],
-  });
   const prefs = readPrefs();
   writePrefs({ ...prefs, autoStartInitialized: true });
   return { ok: true, openAtLogin };
+});
+
+ipcMain.handle('get-sense-key-override', async () => {
+  try {
+    return await service.getSenseKeyOverride();
+  } catch (err) {
+    return { ok: false, enabled: false, error: err.message };
+  }
+});
+
+ipcMain.handle('set-sense-key-override', async (_event, enabled) => {
+  try {
+    return await service.setSenseKeyOverride(Boolean(enabled), app.getPath('exe'));
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
 });
 
 ipcMain.handle('get-system-specs', async () => {

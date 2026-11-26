@@ -185,4 +185,12 @@ export class ServiceClient {
   applyHackbgrtSplash(bmpBase64) {
     return this.request({ op: 'hackbgrt-apply', bmpBase64 }, 15000);
   }
+
+  getSenseKeyOverride() {
+    return this.request({ op: 'get-sense-key-override' });
+  }
+
+  setSenseKeyOverride(enabled, appPath) {
+    return this.request({ op: 'set-sense-key-override', enabled: Boolean(enabled), appPath });
+  }
 }

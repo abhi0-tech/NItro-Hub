@@ -447,7 +447,20 @@ const AboutModal = ({ isOpen, onClose, snapshot, serviceConnected }) => {
 };
 
 // --- DEBUG / DIAGNOSTICS WINDOW MODAL ---
-const DebugModal = ({ isOpen, onClose, snapshot, serviceConnected, debugInfo, logs, onRefresh, onRetry, onInstallService }) => {
+const DebugModal = ({
+  isOpen,
+  onClose,
+  snapshot,
+  serviceConnected,
+  debugInfo,
+  logs,
+  onRefresh,
+  onRetry,
+  onInstallService,
+  brandOverride = 'auto',
+  detectedBrand = 'nitro',
+  onBrandOverrideChange,
+}) => {
   const [copied, setCopied] = useState(false);
   const { mounted, closing } = useModalTransition(isOpen, 180);
   if (!mounted) return null;
@@ -511,6 +524,35 @@ const DebugModal = ({ isOpen, onClose, snapshot, serviceConnected, debugInfo, lo
               <div className="flex justify-between"><span className="text-slate-400">Operating Modes</span><span className="font-bold text-white">{caps?.operatingModes?.join(', ') || 'None'}</span></div>
               <div className="flex justify-between"><span className="text-slate-400">Sensors</span><span className="font-bold text-white truncate max-w-[210px]">{caps?.sensors?.length ?? 0} active</span></div>
               <div className="flex justify-between"><span className="text-slate-400">CoolBoost / MUX / Dust</span><span className="font-bold text-white">{caps ? `${caps.coolBoost}/${caps.gpuModeSwitch}/${caps.dustDefender}` : '—'}</span></div>
+            </div>
+          </div>
+
+          <div className="bg-black/40 border border-white/10 rounded-xl p-4 flex items-center justify-between gap-4">
+            <div>
+              <div className="text-[10px] font-black tracking-widest" style={{ color: 'var(--accent)' }}>Hardware Brand Logo (Test Switcher)</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">
+                Detected: <span className="text-white font-bold uppercase">{detectedBrand}</span> · Switch between Nitro and Predator logo on Home screen.
+              </div>
+            </div>
+            <div className="inline-flex rounded-lg border border-white/10 bg-black/60 p-1 gap-1 shrink-0">
+              {[
+                { id: 'auto', label: 'Auto' },
+                { id: 'nitro', label: 'Nitro' },
+                { id: 'predator', label: 'Predator' },
+              ].map(opt => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => onBrandOverrideChange?.(opt.id)}
+                  className={`px-3 py-1 rounded-md text-[10px] font-black tracking-wider transition-all ${
+                    brandOverride === opt.id
+                      ? 'bg-[rgba(var(--accent-rgb),0.2)] border border-[var(--accent)] text-white'
+                      : 'border border-transparent text-slate-400 hover:text-white'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -700,6 +742,10 @@ const App = () => {
     }
   })());
   const [autoStartEnabled, setAutoStartEnabled] = useState(true);
+  const [senseKeyOverride, setSenseKeyOverride] = useState(false);
+  const [brandOverride, setBrandOverride] = useState(() => {
+    try { return localStorage.getItem('nitro-brand-override') || 'auto'; } catch { return 'auto'; }
+  });
   const [systemSpecs, setSystemSpecs] = useState(null);
 
   // Windows Update & HackBGRT state
@@ -750,6 +796,9 @@ const App = () => {
       .catch(() => {});
     window.electron?.invoke('get-auto-start')
       .then(res => { if (res && typeof res.openAtLogin === 'boolean') setAutoStartEnabled(res.openAtLogin); })
+      .catch(() => {});
+    window.electron?.invoke('get-sense-key-override')
+      .then(res => { if (res && typeof res.enabled === 'boolean') setSenseKeyOverride(res.enabled); })
       .catch(() => {});
   }, []);
 
@@ -876,9 +925,12 @@ const App = () => {
     [snapshot?.deviceName, modelCatalog]
   );
   const modelImageSrc = matchedModel?.File ? `./models/${matchedModel.File}` : './models/AN515-58.png';
+  const detectedBrand = /predator|helios|phn|ph\d|pt\d/i.test(snapshot?.deviceName || '') ? 'predator' : 'nitro';
+  const activeBrand = brandOverride === 'auto' ? detectedBrand : brandOverride;
 
   const keyboardLightInfo = caps?.lights?.find(l => l.id === 'Keyboard') || caps?.lights?.[0];
   const lightId = keyboardLightInfo?.id || 'Keyboard';
+  const hasRgbKeyboard = Boolean(caps?.keyboard?.rgbBacklight ?? (keyboardLightInfo?.zones ?? 0) > 0) && (keyboardLightInfo?.zones ?? 0) > 0;
   const kbLighting = lightingConfig?.devices?.[lightId]
     || Object.values(lightingConfig?.devices || {})[0]
     || DEFAULT_LIGHTING;
@@ -889,7 +941,7 @@ const App = () => {
 
   // Drive custom software effects (Aurora, DualPulse, SpectrumFlow, DualComet) onto EC hardware as Static zone frames
   useEffect(() => {
-    const isCustom = CUSTOM_SOFTWARE_EFFECTS.has(kbLighting.effect);
+    const isCustom = hasRgbKeyboard && CUSTOM_SOFTWARE_EFFECTS.has(kbLighting.effect);
     customEffectActiveRef.current = isCustom;
     if (!isCustom) return undefined;
     const start = performance.now();
@@ -943,12 +995,12 @@ const App = () => {
     }));
   };
 
-  const handleFanUseCurveToggle = (fanId) => {
+  const handleFanUseCurveSet = (fanId, useCurve) => {
     pushProfile(p => ({
       ...p,
       manual: {
         ...p.manual,
-        [fanId]: { ...(p.manual?.[fanId] || {}), useCurve: !p.manual?.[fanId]?.useCurve },
+        [fanId]: { ...(p.manual?.[fanId] || {}), useCurve: Boolean(useCurve) },
       },
     }));
   };
@@ -1302,10 +1354,11 @@ const App = () => {
           {/* Divider */}
           <div className="h-[34vh] min-h-[160px] max-h-[280px] w-px bg-gradient-to-b from-transparent via-white/15 to-transparent" />
 
-          {/* Right: Auto-rescaling n.svg Logo with seamless moving gradient & edge glow */}
+          {/* Right: Auto-rescaling Nitro/Predator Logo with seamless moving gradient & edge glow */}
           <div className="flex flex-col items-center justify-center flex-1 max-w-[320px]">
             <NitroLogoSvg
               mode={activeOperatingMode}
+              brand={activeBrand}
               style={{ height: 'clamp(210px, 35vh, 360px)' }}
             />
           </div>
@@ -1468,7 +1521,7 @@ const App = () => {
               <div className="flex items-center gap-2">
                 <button onClick={() => setIsCurveEditorOpen(true)}
                   className="flex items-center gap-1.5 text-[10px] font-black tracking-widest px-3 py-1.5 rounded-lg border border-white/10 bg-black/40 text-slate-300 hover:text-white hover:border-[var(--accent)] transition-all">
-                  <Settings size={12} /> Graph Curve Editor
+                  <Settings size={12} /> Curve Editor
                 </button>
                 <span className="text-[11px] font-bold px-3 py-1 rounded-full border border-[rgba(var(--accent-rgb),0.3)] bg-[rgba(var(--accent-rgb),0.1)]" style={{ color: 'var(--accent)' }}>
                   {fanMode}
@@ -1498,16 +1551,32 @@ const App = () => {
                 return (
                   <div key={f.id}>
                     <div className="flex justify-between items-center mb-1.5">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2.5">
                         <span className="text-[10px] font-bold text-slate-400 tracking-widest">{f.label}</span>
-                        <button onClick={() => handleFanUseCurveToggle(f.id)}
-                          className={`px-2 py-0.5 rounded text-[9px] font-black tracking-wider border transition-all ${
-                            setting.useCurve
-                              ? 'bg-[rgba(var(--accent-rgb),0.18)] border-[var(--accent)] text-white'
-                              : 'bg-black/40 border-white/10 text-slate-400 hover:text-white'
-                          }`}>
-                          {setting.useCurve ? 'Curve' : 'Fixed'}
-                        </button>
+                        <div className="inline-flex rounded-lg border border-white/10 bg-black/50 p-0.5 gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleFanUseCurveSet(f.id, false)}
+                            className={`px-3 py-1 rounded-md text-[10px] font-black tracking-wider transition-all ${
+                              !setting.useCurve
+                                ? 'bg-[rgba(var(--accent-rgb),0.2)] border border-[var(--accent)] text-white'
+                                : 'border border-transparent text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            Fixed
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleFanUseCurveSet(f.id, true)}
+                            className={`px-3 py-1 rounded-md text-[10px] font-black tracking-wider transition-all ${
+                              setting.useCurve
+                                ? 'bg-[rgba(var(--accent-rgb),0.2)] border border-[var(--accent)] text-white'
+                                : 'border border-transparent text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            Curve
+                          </button>
+                        </div>
                       </div>
                       <span className="text-sm font-black" style={{ color: 'var(--accent)' }}>
                         {setting.useCurve ? `${f.liveBoost ?? 0}%` : `${setting.percent}%`}
@@ -1592,6 +1661,15 @@ const App = () => {
     </div>
   );
 
+  const singleColorPreviewLighting = {
+    effect: 'Static',
+    brightness: kbLighting?.brightness ?? 100,
+    zones: Array.from({ length: 4 }, () => ({
+      on: (kbLighting?.brightness ?? 100) > 0,
+      color: '#ff6a00',
+    })),
+  };
+
   const personalPanelJSX = (
     <div className="flex-1 p-5 overflow-y-auto">
       <div className="max-w-5xl mx-auto space-y-5">
@@ -1602,30 +1680,30 @@ const App = () => {
               <Keyboard size={15} style={{ color: 'var(--accent)' }} /> Live Keyboard Preview
             </h3>
             <div className="flex items-center gap-2">
-              {rgbPanelTab === 'static' && (
+              {hasRgbKeyboard && rgbPanelTab === 'static' && (
                 <button onClick={() => setSyncAll(!syncAll)}
                   className={`flex items-center gap-1 text-[9px] font-black tracking-widest px-2.5 py-1 rounded-lg border transition-all ${syncAll ? 'bg-[rgba(var(--accent-rgb),0.15)] border-[var(--accent)] text-white' : 'border-white/10 text-slate-400 hover:border-white/25'}`}>
                   <Layers size={10} /> Sync All
                 </button>
               )}
               <span className="text-[9px] font-bold tracking-widest px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-slate-300">
-                {kbLighting.effect} · {kbLighting.brightness}%
+                {hasRgbKeyboard ? kbLighting.effect : 'Single-Color Backlight'} · {kbLighting.brightness ?? 100}%
               </span>
             </div>
           </div>
 
           <KeyboardPreview
-            lighting={kbLighting}
-            interactive={rgbPanelTab === 'static'}
+            lighting={hasRgbKeyboard ? kbLighting : singleColorPreviewLighting}
+            interactive={hasRgbKeyboard && rgbPanelTab === 'static'}
             onZoneClick={(zoneIdx) => {
-              if (rgbPanelTab === 'static' && kbLighting.effect === 'Static') {
+              if (hasRgbKeyboard && rgbPanelTab === 'static' && kbLighting.effect === 'Static') {
                 toggleZoneOn(zoneIdx);
               }
             }}
           />
 
           {/* Zonal RGB Color Changer — Static Page Only */}
-          {rgbPanelTab === 'static' && (
+          {hasRgbKeyboard && rgbPanelTab === 'static' && (
             <div className="grid grid-cols-4 gap-3 pt-1">
               {(kbLighting.zones || DEFAULT_LIGHTING.zones).map((z, idx) => (
                 <div key={idx} className="bg-black/40 rounded-xl px-3.5 py-2.5 border border-white/10 flex items-center justify-between">
@@ -1643,8 +1721,27 @@ const App = () => {
           )}
         </div>
 
-        {/* 2. MIDDLE: Lighting Controls (Static vs Animated) */}
+        {/* 2. MIDDLE: Lighting Controls (Static vs Animated, or Single-Color Brightness) */}
         <div className="bg-[#070b12]/80 rounded-2xl border border-white/10 p-5 space-y-4">
+          {!hasRgbKeyboard ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-black text-white tracking-wider">Keyboard Backlight Brightness</div>
+                  <div className="text-[10px] text-slate-400">Single-color backlight detected (RGB zones are not supported on this model)</div>
+                </div>
+                <span className="text-xs font-black" style={{ color: 'var(--accent)' }}>{kbLighting.brightness ?? 100}%</span>
+              </div>
+              <FilledSlider
+                min={0}
+                max={100}
+                step={25}
+                value={kbLighting.brightness ?? 100}
+                onChange={(e) => pushLighting({ ...kbLighting, brightness: parseInt(e.target.value, 10) })}
+              />
+            </div>
+          ) : (
+          <>
           <div className="flex items-center gap-3">
             <div className="flex flex-1 bg-black/50 p-1 rounded-xl border border-white/10">
               {[
@@ -1826,6 +1923,8 @@ const App = () => {
                 </div>
               </div>
             </div>
+          )}
+          </>
           )}
 
           {(caps?.keyboard?.backlightAutoOff || caps?.keyboard?.fnLock) && (
@@ -2284,6 +2383,51 @@ const App = () => {
           </div>
         </div>
 
+        {/* Keyboard & Hotkeys */}
+        <div className="bg-[#070b12]/90 rounded-2xl border border-white/10 p-6 space-y-4 hover-panel">
+          <h3 className="text-sm font-black text-white tracking-widest flex items-center gap-2">
+            <Keyboard size={16} style={{ color: 'var(--accent)' }} /> Keyboard &amp; Hotkeys
+          </h3>
+
+          <div className="flex items-center justify-between bg-black/40 rounded-xl p-4 border border-white/10">
+            <div>
+              <div className="text-xs font-bold text-white">Override NitroSense / PredatorSense Key</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">
+                Redirect the dedicated Sense key on supported Acer laptops to launch or focus Nitro Hub instead.
+              </div>
+            </div>
+            <ToggleSwitch
+              checked={senseKeyOverride}
+              onChange={async (val) => {
+                setSenseKeyOverride(val);
+                const res = await window.electron?.invoke('set-sense-key-override', val).catch(() => null);
+                if (res && typeof res.enabled === 'boolean') setSenseKeyOverride(res.enabled);
+              }}
+            />
+          </div>
+
+          <div className="flex items-center justify-between bg-black/40 rounded-xl p-4 border border-white/10">
+            <div>
+              <div className="text-xs font-bold text-white">Fn Lock</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">
+                {caps?.keyboard?.fnLock
+                  ? 'Keep F1–F12 media/hotkey functions active without holding Fn.'
+                  : 'Not reported as supported by this model’s firmware.'}
+              </div>
+            </div>
+            {caps?.keyboard?.fnLock ? (
+              <ToggleSwitch
+                checked={Boolean(keyboardSettings.fnLock ?? snapshot?.keyboard?.fnLock)}
+                onChange={(val) => updateKeyboardSetting('fnLock', val)}
+              />
+            ) : (
+              <span className="text-[10px] font-bold text-slate-500 px-3 py-1 rounded-lg bg-white/5 border border-white/10">
+                Unsupported
+              </span>
+            )}
+          </div>
+        </div>
+
         {/* Debug & Shortcut Settings */}
         <div className="bg-[#070b12]/90 rounded-2xl border border-white/10 p-6 space-y-4 hover-panel">
           <h3 className="text-sm font-black text-white tracking-widest flex items-center gap-2">
@@ -2445,7 +2589,7 @@ const App = () => {
         }}>
           <div className="bg-grid absolute inset-0 opacity-[0.06]" />
           <div className="relative z-10 flex flex-col items-center splash-reveal">
-            <NitroLogoSvg mode="Balanced" style={{ height: 'clamp(140px, 24vh, 220px)' }} />
+            <NitroLogoSvg mode="Balanced" brand={activeBrand} style={{ height: 'clamp(140px, 24vh, 220px)' }} />
             <div className="mt-7 text-center">
               <div className="text-[36px] leading-none tracking-[0.34em] font-extralight text-white">
                 NITRO<span className="font-black" style={{ color: 'var(--accent)' }}>HUB</span>
@@ -2512,6 +2656,12 @@ const App = () => {
           await window.nitro?.installService?.();
           setTimeout(refreshDebugInfo, 1200);
         }}
+        brandOverride={brandOverride}
+        detectedBrand={detectedBrand}
+        onBrandOverrideChange={(next) => {
+          setBrandOverride(next);
+          try { localStorage.setItem('nitro-brand-override', next); } catch {}
+        }}
       />
       <CurveGraphEditorModal
         isOpen={isCurveEditorOpen}
@@ -2526,7 +2676,7 @@ const App = () => {
       {/* TOP NAV / TITLE BAR */}
       <div className="relative z-10 bg-[#05080f]/90 border-b border-white/10 flex items-stretch shrink-0" style={{ minHeight: 50, WebkitAppRegion: 'drag' }}>
         <div className="flex items-center px-4 border-r border-white/10 shrink-0" style={{ WebkitAppRegion: 'no-drag' }}>
-          <NitroLogoSvg mode={activeOperatingMode} height={28} animated={false} />
+          <NitroLogoSvg mode={activeOperatingMode} brand={activeBrand} height={28} animated={false} />
         </div>
         <nav className="flex items-stretch" style={{ WebkitAppRegion: 'no-drag' }}>
           {[

@@ -41,7 +41,9 @@
   Pop $0
   DetailPrint "sc start exit code: $0"
 
-  ; Register high-priority logon task so Nitro Hub starts immediately at logon before delayed startup apps
+  ; Clean up any legacy registry Run startup entries and register Task Scheduler logon task
+  DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "electron.app.Nitro Hub"
+  DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "Nitro Hub"
   nsExec::ExecToLog 'schtasks.exe /Create /TN "NitroHubAutoStart" /TR "\"$INSTDIR\Nitro Hub.exe\" --startup" /SC ONLOGON /F'
   Pop $0
 !macroend
@@ -50,6 +52,8 @@
 !macro customUnInstall
   DetailPrint "Removing ${SVC_DISPLAY}..."
 
+  DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "electron.app.Nitro Hub"
+  DeleteRegValue HKCU "Software\Microsoft\Windows\CurrentVersion\Run" "Nitro Hub"
   nsExec::ExecToLog 'schtasks.exe /Delete /TN "NitroHubAutoStart" /F'
   Pop $0
 

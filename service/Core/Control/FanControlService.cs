@@ -58,6 +58,7 @@ public sealed class FanControlService : IDeviceDispatcher, IDisposable
     // Last sensor sample.
     private DateTime _lastSample = DateTime.MinValue;
     private double? _cpuTemp, _gpuTemp, _systemTemp, _cpuLoad, _gpuLoad;
+    private int? _cpuMhz;
     private bool _gpuAsleep;
     private bool? _gpuOn;
     private TemperatureOrigin _cpuOrigin, _gpuOrigin;
@@ -404,6 +405,7 @@ public sealed class FanControlService : IDeviceDispatcher, IDisposable
             Limits = _limits,
             SystemTemperature = _systemTemp,
             CpuLoad = _cpuLoad,
+            CpuMhz = _cpuMhz,
             GpuLoad = _gpuLoad,
             // Fans AcerCrate can't drive are always on the firmware's own control.
             Fans = Capabilities.Fans.Select(f => new FanTelemetry(
@@ -474,10 +476,12 @@ public sealed class FanControlService : IDeviceDispatcher, IDisposable
         try
         {
             (_cpuLoad, _gpuLoad) = _load.Sample();
+            _cpuMhz = _load.CpuMhz;
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
             _cpuLoad = _gpuLoad = null;
+            _cpuMhz = null;
         }
     }
 

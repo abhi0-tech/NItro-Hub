@@ -45,6 +45,7 @@ public sealed record Telemetry
 
     public double? SystemTemperature { get; init; }
     public double? CpuLoad { get; init; }
+    public int? CpuMhz { get; init; }
     public double? GpuLoad { get; init; }
     public IReadOnlyList<FanTelemetry> Fans { get; init; } = [];
 

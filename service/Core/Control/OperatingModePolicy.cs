@@ -73,10 +73,15 @@ public static class OperatingModePolicy
 
     /// <summary>
     /// Whether the embedded controller holds the modes back on AC: its own limit, or a USB-C adapter (no barrel
-    /// adapter) it doesn't call strong enough. Values that didn't come count as no limit.
+    /// adapter) it doesn't call strong enough. Values that didn't come count as no limit. If EC HID reports no
+    /// adapter at all (0) while Windows is on AC, its adapter/modeLimit flags aren't reliable for AC.
     /// </summary>
-    public static bool WeakAdapter(ushort? adapter, ushort? modeLimit, ushort? usbCAdapter) =>
-        modeLimit is > 0 || (adapter is { } a && !EcHidProtocol.BarrelAdapter(a) && usbCAdapter is { } usbC && usbC != 1);
+    public static bool WeakAdapter(ushort? adapter, ushort? modeLimit, ushort? usbCAdapter)
+    {
+        if (adapter is 0 && (usbCAdapter is null or 0))
+            return false;
+        return modeLimit is > 0 || (adapter is { } a && !EcHidProtocol.BarrelAdapter(a) && usbCAdapter is { } usbC && usbC != 1);
+    }
 
     /// <summary>The supported modes the power supply allows now, in the order given.</summary>
     public static IReadOnlyList<OperatingMode> Allowed(IReadOnlyCollection<OperatingMode> supported, PowerLimit limit,

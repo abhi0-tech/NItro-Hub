@@ -265,8 +265,83 @@ internal sealed class TcpBridgeServer : IDisposable
                 return await Task.Run(() => WriteHackbgrtSplash(bmpBytes), ct).ConfigureAwait(false);
             }
 
+            case "get-sense-key-override":
+                return await Task.Run(GetSenseKeyOverride, ct).ConfigureAwait(false);
+
+            case "set-sense-key-override":
+            {
+                var enabled = req.TryGetProperty("enabled", out var enEl) && enEl.ValueKind == JsonValueKind.True;
+                var appPath = req.TryGetProperty("appPath", out var apEl) ? apEl.GetString() : null;
+                return await Task.Run(() => SetSenseKeyOverride(enabled, appPath), ct).ConfigureAwait(false);
+            }
+
             default:
                 return new { ok = false, error = $"Unknown operation: {op}" };
+        }
+    }
+
+    private static readonly string[] SenseLauncherExes =
+    [
+        "NitroSense.exe",
+        "PredatorSense.exe",
+        "AcerSense.exe",
+        "PSLauncher.exe",
+        "NitroSenseLauncher.exe",
+        "PredatorSenseLauncher.exe",
+    ];
+
+    private const string IfeoRoot = @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options";
+
+    private static object GetSenseKeyOverride()
+    {
+        try
+        {
+            foreach (var exe in SenseLauncherExes)
+            {
+                using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey($@"{IfeoRoot}\{exe}");
+                var dbg = key?.GetValue("Debugger") as string;
+                if (!string.IsNullOrWhiteSpace(dbg) && dbg.Contains("Nitro Hub", StringComparison.OrdinalIgnoreCase))
+                    return new { ok = true, enabled = true };
+            }
+            return new { ok = true, enabled = false };
+        }
+        catch (Exception ex)
+        {
+            return new { ok = false, enabled = false, error = ex.Message };
+        }
+    }
+
+    private static object SetSenseKeyOverride(bool enabled, string? appPath)
+    {
+        try
+        {
+            if (enabled)
+            {
+                if (string.IsNullOrWhiteSpace(appPath) || !appPath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) || !File.Exists(appPath))
+                    return new { ok = false, error = "Invalid Nitro Hub executable path." };
+
+                var cmd = $"\"{appPath}\"";
+                foreach (var exe in SenseLauncherExes)
+                {
+                    using var key = Microsoft.Win32.Registry.LocalMachine.CreateSubKey($@"{IfeoRoot}\{exe}");
+                    key.SetValue("Debugger", cmd, Microsoft.Win32.RegistryValueKind.String);
+                }
+                return new { ok = true, enabled = true };
+            }
+
+            foreach (var exe in SenseLauncherExes)
+            {
+                using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey($@"{IfeoRoot}\{exe}", writable: true);
+                if (key is null) continue;
+                var dbg = key.GetValue("Debugger") as string;
+                if (!string.IsNullOrWhiteSpace(dbg) && dbg.Contains("Nitro Hub", StringComparison.OrdinalIgnoreCase))
+                    key.DeleteValue("Debugger", throwOnMissingValue: false);
+            }
+            return new { ok = true, enabled = false };
+        }
+        catch (Exception ex)
+        {
+            return new { ok = false, error = ex.Message };
         }
     }
 

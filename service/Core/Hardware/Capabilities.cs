@@ -692,8 +692,8 @@ public static class CapabilityProbe
             log("GetGamingRgbKb = " + string.Join(" ", Enumerable.Range(1, zones)
                 .Select(zone => $"{zone}:{Hex(device.Raw(GamingClass, "GetGamingRgbKb", KeyboardProtocol.ZoneColorQuery(zone)))}")));
         }
-        bool? fnLock = firmware.SupportsFnLockProbe ? device.GetFnLock() : null;
-        if (firmware.SupportsFnLockProbe)
+        bool? fnLock = device.GetFnLock();
+        if (firmware.SupportsFnLockProbe || fnLock is not null)
             log($"misc FnLock = {fnLock switch { true => "locked", false => "unlocked", null => "no answer" }}");
 
         return new KeyboardCapabilities

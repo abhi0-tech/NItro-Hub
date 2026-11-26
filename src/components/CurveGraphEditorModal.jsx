@@ -72,11 +72,11 @@ const CurveGraphEditorModal = ({ isOpen, onClose, curves, limits, currentCpuTemp
 
   // SVG plot area
   const W = 620;
-  const H = 300;
-  const padL = 48;
+  const H = 315;
+  const padL = 58;
   const padR = 24;
   const padT = 20;
-  const padB = 36;
+  const padB = 48;
   const plotW = W - padL - padR;
   const plotH = H - padT - padB;
 
@@ -164,7 +164,7 @@ const CurveGraphEditorModal = ({ isOpen, onClose, curves, limits, currentCpuTemp
         <div className="p-5 border-b border-white/10 flex justify-between items-center">
           <div>
             <h3 className="text-lg font-black text-white tracking-wider flex items-center gap-2.5">
-              <Gauge style={{ color: 'var(--accent)' }} size={20} /> Fan Curve Graph Editor
+              <Gauge style={{ color: 'var(--accent)' }} size={20} /> Curve Editor
             </h3>
             <p className="text-[10px] text-slate-400 font-bold tracking-widest mt-1">
               Click grid to add · Drag nodes to adjust (10% boost steps, max {MAX_POINTS} points)
@@ -236,6 +236,31 @@ const CurveGraphEditorModal = ({ isOpen, onClose, curves, limits, currentCpuTemp
                   </g>
                 );
               })}
+
+              {/* Axis Labels */}
+              <text
+                x={padL + plotW / 2}
+                y={H - 8}
+                textAnchor="middle"
+                fill="#94a3b8"
+                fontSize="11"
+                fontWeight="800"
+                letterSpacing="0.08em"
+              >
+                Temperature (°C)
+              </text>
+              <text
+                x={14}
+                y={padT + plotH / 2}
+                textAnchor="middle"
+                fill="#94a3b8"
+                fontSize="11"
+                fontWeight="800"
+                letterSpacing="0.08em"
+                transform={`rotate(-90 14 ${padT + plotH / 2})`}
+              >
+                Fan Speed (%)
+              </text>
 
               {/* Live Temp Vertical Marker */}
               {liveTemp >= MIN_TEMP && liveTemp <= MAX_TEMP && (

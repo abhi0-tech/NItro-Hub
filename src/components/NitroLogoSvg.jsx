@@ -38,11 +38,12 @@ const MODE_PALETTES = {
   },
 };
 
-const NitroLogoSvg = ({ mode = 'Balanced', height, className = '', style = {}, animated = true }) => {
+const NitroLogoSvg = ({ mode = 'Balanced', brand = 'nitro', height, className = '', style = {}, animated = true }) => {
   const uid = useId().replace(/:/g, '');
   const gradId = `metal-${uid}`;
   const rimId = `rim-${uid}`;
   const palette = MODE_PALETTES[mode] || MODE_PALETTES.Balanced;
+  const isPredator = brand === 'predator';
 
   return (
     <div
@@ -50,7 +51,7 @@ const NitroLogoSvg = ({ mode = 'Balanced', height, className = '', style = {}, a
       style={{ ...(height ? { height } : {}), ...style }}
     >
       <svg
-        viewBox="0 0 329 865"
+        viewBox={isPredator ? '0 0 758 991' : '0 0 329 865'}
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className="relative z-10 h-full w-auto"
@@ -93,13 +94,32 @@ const NitroLogoSvg = ({ mode = 'Balanced', height, className = '', style = {}, a
             <stop offset="100%" stopColor={palette.c0} stopOpacity="0.8" />
           </linearGradient>
         </defs>
-        <path
-          d="M230 320.5L3 0L0 492.5L106 600.5L111.5 368L171.5 467L175.5 864.5L328.5 616.5L317.5 100L230 320.5Z"
-          fill={`url(#${gradId})`}
-          stroke={`url(#${rimId})`}
-          strokeWidth="2.5"
-          strokeLinejoin="round"
-        />
+        {isPredator ? (
+          <>
+            <path
+              d="M758 563.945V0L662.271 227.145L498.038 394.121L399.463 117.667V709.027L487.006 796.609L563.696 991V522.824L648.571 388.603V528.343L596.614 580.323V725.403L758 563.945Z"
+              fill={`url(#${gradId})`}
+              stroke={`url(#${rimId})`}
+              strokeWidth="4"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M0 563.945V0L96.0844 224.474L260.318 391.451L358.894 117.667V709.027L271.35 796.609L194.304 991V522.824L109.429 391.451V531.013L161.386 580.323V725.403L0 563.945Z"
+              fill={`url(#${gradId})`}
+              stroke={`url(#${rimId})`}
+              strokeWidth="4"
+              strokeLinejoin="round"
+            />
+          </>
+        ) : (
+          <path
+            d="M230 320.5L3 0L0 492.5L106 600.5L111.5 368L171.5 467L175.5 864.5L328.5 616.5L317.5 100L230 320.5Z"
+            fill={`url(#${gradId})`}
+            stroke={`url(#${rimId})`}
+            strokeWidth="2.5"
+            strokeLinejoin="round"
+          />
+        )}
       </svg>
     </div>
   );

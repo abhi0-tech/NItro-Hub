@@ -61,12 +61,15 @@ export function computeEffectZoneColors(lighting, elapsedSec) {
   const brightness = (lighting?.brightness ?? 100) / 100;
   const direction = lighting?.direction || 'Right';
   const effectColor = hexToRgb(lighting?.effectColor || '#00e5ff');
-  const zones = lighting?.zones || [
-    { on: true, color: '#00e5ff' },
-    { on: true, color: '#00e5ff' },
-    { on: true, color: '#00e5ff' },
-    { on: true, color: '#00e5ff' },
-  ];
+  const fallbackColor = lighting?.effectColor || '#00e5ff';
+  const zones = Array.isArray(lighting?.zones) && lighting.zones.length > 0
+    ? lighting.zones
+    : [
+        { on: true, color: fallbackColor },
+        { on: true, color: fallbackColor },
+        { on: true, color: fallbackColor },
+        { on: true, color: fallbackColor },
+      ];
 
   const rate = 0.55 + speed * 0.24;
   const t = elapsedSec * rate;
@@ -173,7 +176,7 @@ function keyZoneColor(centerX, zoneColors) {
   const edges = FOUR_ZONE_EDGES;
   let zoneIdx = 0;
   while (zoneIdx < edges.length && centerX >= edges[zoneIdx]) zoneIdx++;
-  let c = zoneColors[zoneIdx] || zoneColors[0];
+  let c = zoneColors[zoneIdx] || zoneColors[0] || { r: 0, g: 229, b: 255 };
   if (zoneIdx > 0) {
     const dist = centerX - edges[zoneIdx - 1];
     if (dist < BLEND_WIDTH / 2) {
